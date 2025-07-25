@@ -12,7 +12,7 @@ from pathlib import Path
 from models.ai_predictor import BitcoinParameterPredictor
 from models.monte_carlo import simulate_crypto_price_paths
 from utils.price_fetcher import BitcoinPriceFetcher
-from utils.visualization import create_simulation_plot, create_parameter_plot
+from utils.visualization import create_simulation_plot, create_parameter_plot, create_multistep_parameter_plot
 from data.data_processor import DataProcessor
 
 # Initialize session state
@@ -223,16 +223,15 @@ with col1:
     
     # Display predicted parameters if available
     if st.session_state.last_simulation and 'predicted_params' in st.session_state.last_simulation:
-        st.subheader("🔮 AI-Predicted Parameters")
+        st.subheader("🔮 AI-Predicted Parameters (24h, 5-min steps)")
         params = st.session_state.last_simulation['predicted_params']
-        
-        param_col1, param_col2 = st.columns(2)
-        with param_col1:
-            st.metric("Daily Volatility", f"{params['daily_sigma']:.4f}")
-            st.metric("Daily Drift", f"{params['daily_drift']:.6f}")
-        with param_col2:
-            st.metric("Skewness", f"{params['skewness']:.3f}")
-            st.metric("Kurtosis", f"{params['kurtosis']:.3f}")
+        # Show summary stats for first, median, last step
+        st.write(f"**First Sigma:** {params['sigma'][0]:.4f} | **Median Sigma:** {np.median(params['sigma']):.4f} | **Last Sigma:** {params['sigma'][-1]:.4f}")
+        st.write(f"**First Skewness:** {params['skewness'][0]:.3f} | **Median Skewness:** {np.median(params['skewness']):.3f} | **Last Skewness:** {params['skewness'][-1]:.3f}")
+        st.write(f"**First Kurtosis:** {params['kurtosis'][0]:.3f} | **Median Kurtosis:** {np.median(params['kurtosis']):.3f} | **Last Kurtosis:** {params['kurtosis'][-1]:.3f}")
+        # Plot the full arrays
+        fig_params = create_multistep_parameter_plot(params, time_increment=st.session_state.last_simulation['time_increment'])
+        st.plotly_chart(fig_params, use_container_width=True)
 
 with col2:
     st.header("🎯 Model Status")

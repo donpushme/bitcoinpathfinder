@@ -115,32 +115,27 @@ class DataProcessor:
         
         return df
     
-    def process_training_data(self, csv_data: str, sequence_length: int = 30) -> List[Dict]:
+    def process_training_data(self, csv_data: str, sequence_length: int = 30, output_steps: int = 288) -> List[Dict]:
         """
         Process raw CSV training data into format suitable for AI model training.
-        
         Args:
             csv_data: Raw CSV data string
             sequence_length: Length of sequences for model training
-            
+            output_steps: Number of steps to predict (default 288)
         Returns:
             List of processed data dictionaries
         """
         # Convert to DataFrame
         df = self.process_csv_data(csv_data)
         print(f"Converted {len(df)} data points to DataFrame")
-        
         # Calculate technical indicators
         df = self.calculate_technical_indicators(df)
         print("Calculated technical indicators")
-        
         # Remove rows with NaN values
         df = df.dropna()
         print(f"After cleaning: {len(df)} data points")
-        
-        if len(df) < sequence_length:
-            raise ValueError(f"Insufficient data after cleaning. Need at least {sequence_length}, got {len(df)}")
-        
+        if len(df) < sequence_length + output_steps:
+            raise ValueError(f"Insufficient data after cleaning. Need at least {sequence_length + output_steps}, got {len(df)}")
         # Convert back to list of dictionaries for model training
         processed_data = []
         for _, row in df.iterrows():
@@ -155,8 +150,43 @@ class DataProcessor:
                 'skewness': row.get('skewness_10', 0),
                 'kurtosis': row.get('kurtosis_10', 0)
             })
-        
         return processed_data
+
+    def create_multistep_targets(self, data: List[Dict], sequence_length: int, output_steps: int = 288) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        For each input sequence, generate 288-step-ahead rolling targets for sigma, skewness, kurtosis.
+        Returns:
+            X: Input sequences (N, sequence_length, 4)
+            y: Target parameter arrays (N, output_steps, 3)
+        """
+        import numpy as np
+        import pandas as pd
+        if len(data) < sequence_length + output_steps:
+            raise ValueError(f"Not enough data points. Need at least {sequence_length + output_steps}, got {len(data)}")
+        df = pd.DataFrame(data)
+        df['returns'] = df['close'].pct_change()
+        X_data = df[['open', 'high', 'low', 'close']].values
+        X_sequences = []
+        y_targets = []
+        for i in range(sequence_length, len(df) - output_steps + 1):
+            # Input sequence
+            X_seq = X_data[i-sequence_length:i]
+            X_sequences.append(X_seq)
+            # Output: for each of the next output_steps, calculate sigma, skewness, kurtosis
+            y_seq = []
+            for j in range(output_steps):
+                window = df.iloc[i+j-sequence_length+1:i+j+1]['returns'].dropna()
+                if len(window) > 5:
+                    sigma = np.clip(window.std(), 0.001, 0.15)
+                    skew = np.clip(window.skew() if not np.isnan(window.skew()) else 0.0, -2.0, 2.0)
+                    kurt = np.clip(window.kurtosis() + 3, 0.1, 10.0)
+                else:
+                    sigma, skew, kurt = 0.0366, 0.09, 1.34
+                y_seq.append([sigma, skew, kurt])
+            y_targets.append(y_seq)
+        X = np.array(X_sequences)
+        y = np.array(y_targets)
+        return X, y
     
     def create_realtime_features(self, recent_data: List[Dict]) -> List[Dict]:
         """

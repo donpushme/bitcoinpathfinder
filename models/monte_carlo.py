@@ -56,68 +56,53 @@ def simulate_crypto_price_paths(
 
     price_paths = []
     for _ in range(num_simulations):
-        price_path = simulate_single_price_path_daily(
-            current_price, time_increment, time_length, **params
+        price_path = simulate_single_price_path_multistep(
+            current_price, time_increment, time_length,
+            sigma=params.get('sigma', params['daily_sigma']),
+            skewness=params.get('skewness', params['skewness']),
+            kurtosis=params.get('kurtosis', params['kurtosis']),
+            min_price=params.get('min_price', 0.01)
         )
         price_paths.append(price_path)
 
     return np.array(price_paths)
 
 
-def simulate_single_price_path_daily(
-    current_price, 
-    time_increment, 
-    time_length, 
-    daily_sigma,                    # DAILY volatility (not annual)
-    daily_drift=0.0,               # Expected DAILY return
-    skewness=0.0,                  # Distribution skewness
-    kurtosis=3.0,                  # Distribution kurtosis
-    volatility_clustering=False,   # GARCH-like volatility
-    min_price=0.01                 # Price floor
+def simulate_single_price_path_multistep(
+    current_price,
+    time_increment,
+    time_length,
+    sigma,
+    skewness,
+    kurtosis,
+    min_price=0.01
 ):
     """
-    Simulate price path using DAILY parameters (no mean reversion, no jumps).
-    
-    Parameters:
-    -----------
-    daily_sigma : float
-        Daily volatility (e.g., 0.037 for 3.7% daily volatility)
-    daily_drift : float  
-        Expected daily return (e.g., 0.001 for 0.1% daily)
+    Simulate price path using per-step parameters (sigma, skewness, kurtosis can be arrays or scalars).
     """
-    
-    # Time calculations
-    one_day = 86400  # seconds in a day
-    dt = time_increment / one_day  # Time step as fraction of day
+    one_day = 86400
     num_steps = int(time_length / time_increment)
-    
-    # Initialize arrays
     prices = np.zeros(num_steps + 1)
     prices[0] = current_price
-    volatilities = np.full(num_steps, daily_sigma)
-    
-    # Generate random numbers
-    if abs(skewness) > 0.1 or abs(kurtosis - 3) > 0.5:
-        random_nums = generate_skewed_kurtotic_random(num_steps, skewness, kurtosis)
-    else:
-        random_nums = np.random.normal(0, 1, size=num_steps)
-    
-    # Main simulation loop
+    # Broadcast if needed
+    if np.isscalar(sigma):
+        sigma = np.full(num_steps, sigma)
+    if np.isscalar(skewness):
+        skewness = np.full(num_steps, skewness)
+    if np.isscalar(kurtosis):
+        kurtosis = np.full(num_steps, kurtosis)
+    dt = time_increment / one_day
     for i in range(num_steps):
-        current_vol = volatilities[i]
-        # 1. Base return with daily drift and volatility
-        drift_component = daily_drift * dt
-        vol_component = current_vol * np.sqrt(dt) * random_nums[i]
+        # Generate random number for this step
+        if abs(skewness[i]) > 0.1 or abs(kurtosis[i] - 3) > 0.5:
+            rand = generate_skewed_kurtotic_random(1, skewness[i], kurtosis[i])[0]
+        else:
+            rand = np.random.normal(0, 1)
+        drift_component = 0.0  # No drift for each step (or add if needed)
+        vol_component = sigma[i] * np.sqrt(dt) * rand
         total_return = drift_component + vol_component
-        # 2. Update price
         new_price = prices[i] * (1 + total_return)
         prices[i + 1] = max(new_price, min_price)
-        # 3. Update volatility (daily clustering)
-        if volatility_clustering and i < num_steps - 1:
-            volatilities[i + 1] = update_volatility_garch_daily(
-                current_vol, total_return, daily_sigma
-            )
-    
     return prices
 
 def generate_skewed_kurtotic_random(size, skewness, kurtosis):
