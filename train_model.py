@@ -140,8 +140,14 @@ def run_simulation(model_path: str = "models/bitcoin_predictor.pth",
     
     if use_ai_params and os.path.exists(model_path):
         print("Using AI-predicted parameters...")
-        predicted_params = predict_parameters(model_path)
-        ai_params = predicted_params
+        try:
+            predicted_params = predict_parameters(model_path)
+            ai_params = predicted_params
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            print("Falling back to default parameters...")
+            predicted_params = None
+            ai_params = None
     else:
         print("Using default parameters...")
         predicted_params = None

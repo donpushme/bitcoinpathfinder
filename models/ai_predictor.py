@@ -463,6 +463,7 @@ class BitcoinParameterPredictor(nn.Module):
     @classmethod
     def load_model(cls, filepath: str) -> 'BitcoinParameterPredictor':
         """Load model and scalers"""
+        print(f"Loading model from {filepath}")
         try:
             # Try loading with weights_only=False for backward compatibility
             checkpoint = torch.load(filepath, map_location='cpu', weights_only=False)
