@@ -463,7 +463,14 @@ class BitcoinParameterPredictor(nn.Module):
     @classmethod
     def load_model(cls, filepath: str) -> 'BitcoinParameterPredictor':
         """Load model and scalers"""
-        checkpoint = torch.load(filepath, map_location='cpu')
+        try:
+            # Try loading with weights_only=False for backward compatibility
+            checkpoint = torch.load(filepath, map_location='cuda', weights_only=False)
+        except Exception as e:
+            # If that fails, try with safe globals for sklearn objects
+            import torch.serialization
+            torch.serialization.add_safe_globals(['sklearn.preprocessing._data.StandardScaler'])
+            checkpoint = torch.load(filepath, map_location='cuda', weights_only=True)
         
         # Create model instance
         model = cls(**checkpoint['model_params'])
