@@ -46,7 +46,6 @@ python train_model.py train \
     --epochs 100 \
     --learning_rate 0.001 \
     --sequence_length 30 \
-    --output_steps 288 \
     --batch_size 32 \
     --hidden_size 64 \
     --num_layers 2 \
@@ -58,14 +57,13 @@ python train_model.py train \
 - `--epochs`: Number of training epochs (default: 50)
 - `--learning_rate`: Learning rate for training (default: 0.001)
 - `--sequence_length`: Input sequence length (default: 30)
-- `--output_steps`: Number of output steps (default: 288, for 24h at 5-min intervals)
 - `--batch_size`: Training batch size (default: 32)
 - `--hidden_size`: LSTM hidden layer size (default: 64)
 - `--num_layers`: Number of LSTM layers (default: 2)
 - `--model_save_path`: Where to save the trained model (default: models/bitcoin_predictor.pth)
 
 ### `predict` - Predict Monte Carlo Parameters
-Use a trained model to predict 288-step arrays for sigma, skewness, and kurtosis for Monte Carlo simulation.
+Use a trained model to predict parameters for Monte Carlo simulation.
 
 **Usage:**
 ```bash
@@ -84,7 +82,7 @@ python train_model.py predict \
 - `--days_history`: Days of recent data to use for prediction (default: 7)
 
 ### `simulate` - Run Monte Carlo Simulation
-Run a Monte Carlo simulation to forecast Bitcoin price paths using the 288-step parameter arrays.
+Run a Monte Carlo simulation to forecast Bitcoin price paths.
 
 **Usage:**
 ```bash
@@ -125,7 +123,6 @@ python train_model.py all \
     --epochs 75 \
     --learning_rate 0.001 \
     --sequence_length 30 \
-    --output_steps 288 \
     --batch_size 32 \
     --num_simulations 1500 \
     --time_increment 300 \
@@ -170,10 +167,11 @@ Training completed successfully!
 Loading model from models/bitcoin_predictor.pth...
 Fetching recent 7 days of Bitcoin price data...
 Predicting Monte Carlo parameters...
-Predicted parameter arrays (first 5 values):
-  sigma: [0.0412 0.0413 0.0411 0.0410 0.0409] ... (total 288)
-  skewness: [-0.15 -0.14 -0.13 -0.13 -0.12] ... (total 288)
-  kurtosis: [3.45 3.44 3.43 3.42 3.41] ... (total 288)
+Predicted parameters:
+  daily_sigma: 0.042150
+  daily_drift: 0.001234
+  skewness: -0.152345
+  kurtosis: 3.456789
 ```
 
 ### Simulation Output

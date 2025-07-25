@@ -1,0 +1,26 @@
+{
+  "last_update": "2025-07-24 22:22:30",
+  "current_price": 118535.6,
+  "price_history_count": 1,
+  "prediction_count": 1,
+  "latest_prediction": {
+    "timestamp": "2025-07-24 22:22:30",
+    "current_price": 118535.6,
+    "predicted_mean": 118535.97060836303,
+    "predicted_median": 118536.29666611116,
+    "predicted_std": 11.601551405258943,
+    "confidence_95_lower": 118511.93289762309,
+    "confidence_95_upper": 118557.47370418037,
+    "confidence_68_lower": 118525.2687082778,
+    "confidence_68_upper": 118547.56527453705,
+    "volatility_estimate": 0.02,
+    "monte_carlo_params": {
+      "daily_sigma": 0.02,
+      "daily_drift": 0.0001,
+      "skewness": 0.0,
+      "kurtosis": 3.0
+    },
+    "num_simulations": 500
+  },
+  "volatility_estimate": 0.02
+}

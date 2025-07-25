@@ -76,7 +76,12 @@ def show_usage_options():
     print("   streamlit run app.py --server.port 5000")
     print("   Then open: http://localhost:5000")
     
-    print("\n2. COMMAND LINE (Advanced users):")
+    print("\n2. REAL-TIME MONITORING (Recommended for live data):")
+    print("   python realtime_monitor.py --interval 5")
+    print("   # Continuously fetches prices and makes predictions")
+    print("   # Saves data for training - Press Ctrl+C to stop")
+    
+    print("\n3. COMMAND LINE (Advanced users):")
     print("   # Train model:")
     print("   python train_model.py train --csv_file sample_bitcoin_data.csv --epochs 10")
     print("   ")
@@ -86,14 +91,15 @@ def show_usage_options():
     print("   # Do both:")
     print("   python train_model.py all --csv_file sample_bitcoin_data.csv --epochs 10")
     
-    print("\n3. HELP COMMANDS:")
+    print("\n4. HELP COMMANDS:")
     print("   python train_model.py --help")
     print("   python train_model.py train --help")
-    print("   python train_model.py simulate --help")
+    print("   python realtime_monitor.py --help")
     
-    print("\n4. DOCUMENTATION:")
+    print("\n5. DOCUMENTATION:")
     print("   - SETUP.md: Complete setup guide")
     print("   - CLI_README.md: Command line documentation")
+    print("   - REALTIME_README.md: Real-time monitoring guide")
     print("   - replit.md: Technical architecture")
 
 def main():
@@ -113,10 +119,13 @@ def main():
     
     print(f"\n{'='*60}")
     print("NEXT STEPS:")
-    print("1. Choose either web interface or command line")
-    print("2. For real data, replace sample_bitcoin_data.csv with your CSV file")
-    print("3. Adjust parameters as needed (epochs, simulations, etc.)")
-    print("4. Check the documentation files for detailed information")
+    print("1. Choose your preferred approach:")
+    print("   - Web interface: Easy to use, great for beginners")
+    print("   - Real-time monitor: Collects live data, runs continuously")
+    print("   - Command line: Full control, automation-friendly")
+    print("2. For real data, use realtime_monitor.py to collect live prices")
+    print("3. Train models with collected data or sample data")
+    print("4. Check the documentation files for detailed guides")
     print(f"{'='*60}")
 
 if __name__ == "__main__":

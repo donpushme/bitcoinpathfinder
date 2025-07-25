@@ -12,6 +12,7 @@ dependencies = [
     "scipy>=1.16.0",
     "streamlit>=1.47.0",
     "torch>=2.7.1",
+    "trafilatura>=2.0.0",
 ]
 
 [[tool.uv.index]]

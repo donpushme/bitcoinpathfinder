@@ -200,33 +200,6 @@ def create_parameter_plot(historical_params: List[Dict], predicted_params: Dict)
     
     return fig
 
-def create_multistep_parameter_plot(predicted_params: Dict[str, np.ndarray], time_increment: int = 300) -> go.Figure:
-    """
-    Plot the 288-step arrays for sigma, skewness, kurtosis as time series.
-    Args:
-        predicted_params: Dict with keys 'sigma', 'skewness', 'kurtosis' (each np.ndarray of shape (288,))
-        time_increment: Step size in seconds (default 5 min)
-    Returns:
-        Plotly figure object
-    """
-    import numpy as np
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
-    steps = len(predicted_params['sigma'])
-    time_axis = np.arange(steps) * time_increment / 3600  # hours
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05,
-        subplot_titles=["Volatility (Sigma)", "Skewness", "Kurtosis"])
-    fig.add_trace(go.Scatter(x=time_axis, y=predicted_params['sigma'], mode='lines', name='Sigma'), row=1, col=1)
-    fig.add_trace(go.Scatter(x=time_axis, y=predicted_params['skewness'], mode='lines', name='Skewness'), row=2, col=1)
-    fig.add_trace(go.Scatter(x=time_axis, y=predicted_params['kurtosis'], mode='lines', name='Kurtosis'), row=3, col=1)
-    fig.update_layout(
-        title='AI-Predicted Parameters (24h, 5-min steps)',
-        height=600,
-        template='plotly_white',
-        xaxis3_title='Time (Hours)'
-    )
-    return fig
-
 def create_price_distribution_plot(final_prices: np.ndarray, current_price: float) -> go.Figure:
     """
     Create a histogram of final prices from Monte Carlo simulation.

@@ -22,17 +22,23 @@ Preferred communication style: Simple, everyday language.
 pip install streamlit torch numpy pandas plotly requests scikit-learn scipy
 ```
 
-### Quick Start
+### Quick Start - UPGRADED FOR 5-MINUTE INTERVAL PREDICTION
 ```bash
-# Option 1: Web Interface
+# Option 1: Web Interface (Now with 288-interval prediction)
 streamlit run app.py --server.port 5000
 
-# Option 2: Command Line (train + simulate)
+# Option 2: Real-time Monitoring (5-minute intervals)
+python realtime_monitor.py --interval 5
+
+# Option 3: Command Line (train + simulate with interval arrays)
 python train_model.py all --csv_file your_data.csv
 
-# Option 3: Run setup helper
+# Option 4: Run setup helper
 python quickstart.py
 ```
+
+### NEW: 5-Minute Interval Architecture
+The system now predicts 288 values for each parameter (volatility, skewness, kurtosis) representing 5-minute intervals over 24 hours. This enables much more granular and accurate forecasting.
 
 ### Data Format
 CSV file with columns: `timestamp,open,high,low,close,volume`
@@ -42,6 +48,7 @@ timestamp,open,high,low,close,volume
 ```
 
 **📋 See SETUP.md for complete installation and setup instructions**
+**🔄 See REALTIME_README.md for real-time monitoring guide**
 
 ## System Architecture
 
@@ -61,50 +68,61 @@ The application follows a modular architecture with clear separation of concerns
 
 ## Key Components
 
-### 1. Command Line Interface (`train_model.py`)
+### 1. Real-time Monitor (`realtime_monitor.py`) - NEW!
+- **Purpose**: Continuous Bitcoin price monitoring with live predictions
+- **Features**: Auto-fetches prices every 5 minutes, calculates dynamic volatility, runs Monte Carlo predictions, saves training data
+- **Output**: Live console updates, CSV price history, JSON predictions, comprehensive logging
+- **Usage**: `python realtime_monitor.py --interval 5` for continuous monitoring
+
+### 2. Command Line Interface (`train_model.py`)
 - **Purpose**: Headless training and simulation without web interface
 - **Commands**: train, predict, simulate, all (complete workflow)
 - **Features**: Flexible parameter configuration, automated result saving, comprehensive logging
 - **Usage**: Direct Python execution with command-line arguments
 
-### 2. AI Predictor (`models/ai_predictor.py`)
-- **Purpose**: LSTM neural network that predicts Monte Carlo simulation parameters
-- **Architecture**: Multi-layer LSTM with dropout regularization and fully connected output layers
-- **Outputs**: Daily volatility (sigma), drift, skewness, and kurtosis parameters
-- **Features**: Parameter bounds validation and data preprocessing capabilities
+### 3. AI Predictor (`models/ai_predictor.py`) - UPGRADED FOR INTERVAL PREDICTION
+- **Purpose**: Enhanced LSTM neural network that predicts 5-minute interval parameters for 24-hour forecasts
+- **Architecture**: Deeper 3-layer LSTM (128 hidden units) with batch normalization and dropout
+- **Outputs**: 864 total parameters - 288 volatility values, 288 skewness values, 288 kurtosis values (5-minute intervals for 24 hours)
+- **Features**: Interval-based parameter generation, advanced time-pattern modeling, enhanced capacity for complex temporal predictions
 
-### 2. Monte Carlo Simulator (`models/monte_carlo.py`)
-- **Purpose**: Generates probabilistic price paths using statistical distributions
+### 4. Monte Carlo Simulator (`models/monte_carlo.py`) - UPGRADED FOR INTERVAL SIMULATION
+- **Purpose**: Generates probabilistic price paths using interval-specific statistical distributions
 - **Supported Assets**: Bitcoin (BTC), Ethereum (ETH), Gold (XAU)
-- **Features**: Volatility clustering, skewed distributions, and minimum price floors
-- **Integration**: Can use AI-predicted parameters or default parameter sets
+- **Features**: Interval-based parameter handling, time-varying volatility/skewness/kurtosis, enhanced distribution modeling
+- **Integration**: Supports both legacy single-value parameters and new 288-element interval arrays from AI predictor
 
-### 3. Data Processor (`data/data_processor.py`)
+### 5. Data Processor (`data/data_processor.py`)
 - **Purpose**: Validates and transforms price data for model consumption
 - **Input Format**: CSV with columns: timestamp,open,high,low,close,volume (volume column ignored)
 - **Features**: Data validation, DataFrame conversion, technical indicator calculation, and CSV parsing
 
-### 4. Price Fetcher (`utils/price_fetcher.py`)
+### 6. Price Fetcher (`utils/price_fetcher.py`)
 - **Purpose**: Retrieves real-time Bitcoin price data from external APIs
 - **Primary Source**: Pyth Network API (free, no API key required)
 - **Fallback Sources**: Binance and Coinbase APIs
 - **Features**: Error handling, retry logic, and timestamp synchronization
 
-### 5. Visualization (`utils/visualization.py`)
+### 7. Visualization (`utils/visualization.py`)
 - **Purpose**: Creates interactive charts for simulation results and parameter analysis
 - **Technology**: Plotly for interactive web-based visualizations
 - **Features**: Monte Carlo path plotting, percentile bands, and parameter trend analysis
 
-## Data Flow
+## Data Flow - UPGRADED FOR INTERVAL PREDICTION
 
 1. **Training Data Upload**: Users upload CSV files with Bitcoin historical price data (timestamp,open,high,low,close,volume format)
-2. **Data Processing**: CSV data is validated, parsed, and transformed with technical indicators for model training
-3. **AI Model Training**: LSTM neural network learns from historical patterns to predict Monte Carlo parameters
+2. **Data Processing**: CSV data is validated, parsed, and transformed with technical indicators for 5-minute interval modeling
+3. **AI Model Training**: Enhanced LSTM neural network learns from historical patterns to predict 288 parameter arrays for each forecast
 4. **Real-time Data Ingestion**: Price fetcher retrieves current Bitcoin price from external APIs for live predictions
-5. **AI Parameter Prediction**: Trained model analyzes recent price patterns to predict simulation parameters
-6. **Monte Carlo Simulation**: Statistical engine generates multiple price paths using AI-predicted or default parameters
-7. **Visualization**: Results are rendered as interactive charts showing price distributions and confidence intervals
-8. **User Interaction**: Streamlit interface allows users to train models, run simulations, and analyze results
+5. **AI Interval Prediction**: Trained model analyzes recent price patterns to predict 864 total parameters (288 × 3 types)
+6. **Interval-Based Monte Carlo Simulation**: Statistical engine generates multiple price paths using time-varying parameters for each 5-minute interval
+7. **Enhanced Visualization**: Results are rendered as interactive charts showing granular price distributions and confidence intervals
+8. **User Interaction**: Streamlit interface allows users to train models, run simulations, and analyze interval-based results
+
+### MAJOR ARCHITECTURAL UPGRADE (December 2024)
+- **Before**: Single parameter prediction (4 values: daily sigma, drift, skewness, kurtosis)
+- **After**: Interval-based prediction (864 values: 288 sigma + 288 skewness + 288 kurtosis for 5-minute intervals)
+- **Impact**: Much more granular and accurate 24-hour Bitcoin price forecasting with time-varying risk parameters
 
 ## External Dependencies
 

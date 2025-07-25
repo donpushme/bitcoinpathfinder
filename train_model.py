@@ -39,38 +39,42 @@ def load_csv_data(csv_file_path: str) -> str:
 
 def train_model(csv_file: str, epochs: int = 50, learning_rate: float = 0.001, 
                 sequence_length: int = 30, batch_size: int = 32, 
-                hidden_size: int = 64, num_layers: int = 2,
-                model_save_path: str = "models/bitcoin_predictor.pth",
-                output_steps: int = 288):
-    """Train the AI model for multi-step output"""
+                hidden_size: int = 128, num_layers: int = 3,
+                intervals_per_day: int = 288,
+                model_save_path: str = "models/bitcoin_predictor.pth"):
+    """Train the AI model"""
+    
     print(f"Starting training with parameters:")
     print(f"  CSV file: {csv_file}")
     print(f"  Epochs: {epochs}")
     print(f"  Learning rate: {learning_rate}")
     print(f"  Sequence length: {sequence_length}")
-    print(f"  Output steps: {output_steps}")
     print(f"  Batch size: {batch_size}")
     print(f"  Hidden size: {hidden_size}")
     print(f"  Num layers: {num_layers}")
     print(f"  Model save path: {model_save_path}")
     print("-" * 50)
+    
     # Load and process data
     print("Loading CSV data...")
     csv_data = load_csv_data(csv_file)
+    
     data_processor = DataProcessor()
     print("Processing training data...")
-    processed_data = data_processor.process_training_data(csv_data, sequence_length=sequence_length, output_steps=output_steps)
+    processed_data = data_processor.process_training_data(csv_data, sequence_length=sequence_length)
+    
     print(f"Processed {len(processed_data)} data points")
-    # Initialize model
-    print("Initializing AI model...")
+    
+    # Initialize model with upgraded architecture for interval prediction
+    print("Initializing AI model for 5-minute interval prediction...")
     model = BitcoinParameterPredictor(
         input_size=4,  # OHLC data
         hidden_size=hidden_size,
         num_layers=num_layers,
         sequence_length=sequence_length,
-        output_steps=output_steps,
-        output_size=3
+        intervals_per_day=intervals_per_day  # 288 5-minute intervals = 24 hours
     )
+    
     # Train model
     print("Starting training...")
     train_losses = model.train_model(
@@ -79,32 +83,43 @@ def train_model(csv_file: str, epochs: int = 50, learning_rate: float = 0.001,
         learning_rate=learning_rate,
         batch_size=batch_size
     )
+    
     # Save model
     print(f"Saving model to {model_save_path}...")
     os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
     model.save_model(model_save_path)
+    
     print("Training completed successfully!")
     print(f"Final training loss: {train_losses[-1]:.6f}")
+    
     return model, train_losses
 
 
 def predict_parameters(model_path: str = "models/bitcoin_predictor.pth", 
                       days_history: int = 7):
-    """Predict 288-step arrays for sigma, skewness, kurtosis using trained model"""
+    """Predict Monte Carlo parameters using trained model"""
+    
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model file not found: {model_path}")
+    
     print(f"Loading model from {model_path}...")
     model = BitcoinParameterPredictor.load_model(model_path)
+    
     print(f"Fetching recent {days_history} days of Bitcoin price data...")
     price_fetcher = BitcoinPriceFetcher()
     recent_data = price_fetcher.get_recent_data(days=days_history)
+    
     if not recent_data or len(recent_data) < model.sequence_length:
         raise ValueError(f"Insufficient recent data. Need at least {model.sequence_length} data points, got {len(recent_data)}")
-    print("Predicting Monte Carlo parameters...")
-    predicted_params = model.predict_parameters(recent_data)
-    print("Predicted parameter arrays (first 5 values):")
-    for param, arr in predicted_params.items():
-        print(f"  {param}: {arr[:5]} ... (total {len(arr)})")
+    
+    print("Predicting interval-based Monte Carlo parameters...")
+    predicted_params = model.predict_interval_parameters(recent_data)
+    
+    print("Predicted parameters summary:")
+    print(f"  Volatility array (288 values): min={np.min(predicted_params['sigma']):.6f}, max={np.max(predicted_params['sigma']):.6f}, mean={np.mean(predicted_params['sigma']):.6f}")
+    print(f"  Skewness array (288 values): min={np.min(predicted_params['skewness']):.6f}, max={np.max(predicted_params['skewness']):.6f}, mean={np.mean(predicted_params['skewness']):.6f}")
+    print(f"  Kurtosis array (288 values): min={np.min(predicted_params['kurtosis']):.6f}, max={np.max(predicted_params['kurtosis']):.6f}, mean={np.mean(predicted_params['kurtosis']):.6f}")
+    
     return predicted_params
 
 
@@ -129,6 +144,7 @@ def run_simulation(model_path: str = "models/bitcoin_predictor.pth",
         ai_params = predicted_params
     else:
         print("Using default parameters...")
+        predicted_params = None
         ai_params = None
     
     print(f"Running Monte Carlo simulation with {num_simulations} paths...")
@@ -194,7 +210,6 @@ def main():
     train_parser.add_argument('--batch_size', type=int, default=32, help='Batch size (default: 32)')
     train_parser.add_argument('--hidden_size', type=int, default=64, help='Hidden layer size (default: 64)')
     train_parser.add_argument('--num_layers', type=int, default=2, help='Number of LSTM layers (default: 2)')
-    train_parser.add_argument('--output_steps', type=int, default=288, help='Number of output steps (default: 288)')
     train_parser.add_argument('--model_save_path', default='models/bitcoin_predictor.pth', help='Model save path')
     
     # Predict command
@@ -218,7 +233,6 @@ def main():
     all_parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate (default: 0.001)')
     all_parser.add_argument('--sequence_length', type=int, default=30, help='Sequence length (default: 30)')
     all_parser.add_argument('--batch_size', type=int, default=32, help='Batch size (default: 32)')
-    all_parser.add_argument('--output_steps', type=int, default=288, help='Number of output steps (default: 288)')
     all_parser.add_argument('--num_simulations', type=int, default=1000, help='Number of simulations (default: 1000)')
     all_parser.add_argument('--time_increment', type=int, default=300, help='Time increment in seconds (default: 300)')
     all_parser.add_argument('--time_length', type=int, default=86400, help='Simulation length in seconds (default: 86400)')
@@ -239,7 +253,6 @@ def main():
                 batch_size=args.batch_size,
                 hidden_size=args.hidden_size,
                 num_layers=args.num_layers,
-                output_steps=args.output_steps,
                 model_save_path=args.model_save_path
             )
             
@@ -266,8 +279,7 @@ def main():
                 epochs=args.epochs,
                 learning_rate=args.learning_rate,
                 sequence_length=args.sequence_length,
-                batch_size=args.batch_size,
-                output_steps=args.output_steps
+                batch_size=args.batch_size
             )
             
             print("\nStep 2: Running simulation...")
