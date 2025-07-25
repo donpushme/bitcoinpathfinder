@@ -465,15 +465,33 @@ class BitcoinParameterPredictor(nn.Module):
         """Load model and scalers"""
         try:
             # Try loading with weights_only=False for backward compatibility
-            checkpoint = torch.load(filepath, map_location='cuda', weights_only=False)
+            checkpoint = torch.load(filepath, map_location='cpu', weights_only=False)
         except Exception as e:
             # If that fails, try with safe globals for sklearn objects
             import torch.serialization
             torch.serialization.add_safe_globals(['sklearn.preprocessing._data.StandardScaler'])
-            checkpoint = torch.load(filepath, map_location='cuda', weights_only=True)
+            checkpoint = torch.load(filepath, map_location='cpu', weights_only=True)
+        
+        # Handle different model parameter formats
+        model_params = checkpoint.get('model_params', {})
+        
+        # Ensure all required parameters are present with defaults
+        required_params = {
+            'input_size': 4,
+            'hidden_size': 128,
+            'num_layers': 3,
+            'sequence_length': 30,
+            'intervals_per_day': 288
+        }
+        
+        # Update with saved params, keeping defaults for missing ones
+        for key, default_value in required_params.items():
+            if key not in model_params:
+                model_params[key] = default_value
+                print(f"Warning: Missing parameter '{key}', using default: {default_value}")
         
         # Create model instance
-        model = cls(**checkpoint['model_params'])
+        model = cls(**model_params)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.input_scaler = checkpoint['input_scaler']
         model.output_scaler = checkpoint['output_scaler']
