@@ -218,7 +218,7 @@ class BitcoinParameterPredictor(nn.Module):
             return np.clip(pattern, 0.1, 10.0)
         
         # Calculate rolling kurtosis
-        recent_kurt = returns.rolling(window=10, min_periods=5).kurtosis().iloc[-1] + 3.0
+        recent_kurt = returns.rolling(window=10, min_periods=5).kurt().iloc[-1] + 3.0
         if np.isnan(recent_kurt):
             recent_kurt = 4.0
             
