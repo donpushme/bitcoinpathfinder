@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'train-model',
       script: 'train_model.py',
-      args: 'all --csv_file sample_bitcoin_data1.csv',
+      args: 'all --csv_file sample_bitcoin_data_1.csv',
       interpreter: 'python3',
       watch: false,
       autorestart: true,
