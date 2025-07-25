@@ -463,18 +463,41 @@ class BitcoinParameterPredictor(nn.Module):
     @classmethod
     def load_model(cls, filepath: str) -> 'BitcoinParameterPredictor':
         """Load model and scalers"""
-        print(f"Loading model from {filepath}")
+        import os
+        
+        # Check if file exists
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Model file not found: {filepath}")
+        
+        print(f"Loading checkpoint from: {filepath}")
+        
         try:
             # Try loading with weights_only=False for backward compatibility
+            print("Attempting to load with weights_only=False...")
             checkpoint = torch.load(filepath, map_location='cpu', weights_only=False)
+            print("Successfully loaded checkpoint")
         except Exception as e:
-            # If that fails, try with safe globals for sklearn objects
-            import torch.serialization
-            torch.serialization.add_safe_globals(['sklearn.preprocessing._data.StandardScaler'])
-            checkpoint = torch.load(filepath, map_location='cpu', weights_only=True)
+            print(f"First attempt failed: {e}")
+            try:
+                # If that fails, try with safe globals for sklearn objects
+                print("Attempting to load with weights_only=True and safe globals...")
+                import torch.serialization
+                torch.serialization.add_safe_globals(['sklearn.preprocessing._data.StandardScaler'])
+                checkpoint = torch.load(filepath, map_location='cpu', weights_only=True)
+                print("Successfully loaded checkpoint with safe globals")
+            except Exception as e2:
+                print(f"Second attempt failed: {e2}")
+                raise RuntimeError(f"Failed to load model from {filepath}. Error: {e2}")
+        
+        # Validate checkpoint structure
+        required_keys = ['model_state_dict', 'model_params', 'input_scaler', 'output_scaler', 'fitted']
+        missing_keys = [key for key in required_keys if key not in checkpoint]
+        if missing_keys:
+            raise ValueError(f"Checkpoint missing required keys: {missing_keys}")
         
         # Handle different model parameter formats
         model_params = checkpoint.get('model_params', {})
+        print(f"Loaded model params: {model_params}")
         
         # Ensure all required parameters are present with defaults
         required_params = {
@@ -491,14 +514,28 @@ class BitcoinParameterPredictor(nn.Module):
                 model_params[key] = default_value
                 print(f"Warning: Missing parameter '{key}', using default: {default_value}")
         
-        # Create model instance
-        model = cls(**model_params)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        model.input_scaler = checkpoint['input_scaler']
-        model.output_scaler = checkpoint['output_scaler']
-        model.fitted = checkpoint['fitted']
+        print(f"Final model params: {model_params}")
         
-        return model
+        try:
+            # Create model instance
+            model = cls(**model_params)
+            print("Model instance created successfully")
+            
+            # Load state dict
+            model.load_state_dict(checkpoint['model_state_dict'])
+            print("State dict loaded successfully")
+            
+            # Load scalers
+            model.input_scaler = checkpoint['input_scaler']
+            model.output_scaler = checkpoint['output_scaler']
+            model.fitted = checkpoint['fitted']
+            print("Scalers loaded successfully")
+            
+            return model
+            
+        except Exception as e:
+            print(f"Error during model creation/loading: {e}")
+            raise RuntimeError(f"Failed to create model instance: {e}")
     
     def get_model_info(self) -> Dict[str, str]:
         """Get model information"""
